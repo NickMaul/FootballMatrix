@@ -15,17 +15,27 @@
     const app = firebase.initializeApp(window._FM_FIREBASE_CONFIG);
     const db = firebase.database();
 
-    db.ref('competitiv-scores').orderByChild('score').limitToLast(10).on('value', snapshot => {
-      const ul = document.getElementById('scores');
-      ul.innerHTML = '';
-      const items = [];
-      snapshot.forEach(s => items.push(s.val()));
-      items.reverse().forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = `${item.player}: ${item.score} Felder, Speed ${item.speed}s`;
-        ul.appendChild(li);
-      });
-    });
+    db.ref('competitiv-scores').orderByChild('duration').limitToFirst(10).on('value', snapshot => {
+  const ul = document.getElementById('scores');
+  ul.innerHTML = '';
+  const items = [];
+  snapshot.forEach(s => {
+    const val = s.val();
+    if(val && val.player != null && val.duration != null){
+      items.push(val);
+    }
+  });
+
+  // Sortieren nach Dauer
+  items.sort((a,b) => a.duration - b.duration);
+
+  items.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = `${item.player}: ${item.duration.toFixed(2)}s`;
+    ul.appendChild(li);
+  });
+});
+
   </script>
 </body>
 </html>
