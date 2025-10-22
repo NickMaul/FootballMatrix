@@ -11,7 +11,6 @@
     .grid {height:100vh;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;padding:16px;box-sizing:border-box}
     .cell {display:flex;align-items:center;justify-content:center;border-radius:12px;background:#222;font-size:48px;transition:transform .12s,background .12s}
     .cell.active{background:#ff3b30;transform:scale(1.06)}
-    .center-label{font-size:18px;opacity:.8}
   </style>
 </head>
 <body>
@@ -33,25 +32,24 @@
 
   <audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA"></audio>
 
-  <!-- Firebase + app logic -->
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
-  <script src="firebase-config.js"></script>
+  <!-- socket.io-client CDN -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
   <script>
-    // --- Basic helpers ---
-    function q(sel){return document.querySelector(sel)}
-    function qa(sel){return Array.from(document.querySelectorAll(sel))}
+    // ====== CONFIG ======
+    // Ersetze dies später mit deiner Render-URL, z.B. 'https://footballmatrix-server.onrender.com'
+    const SERVER_URL = 'https://REPLACE_WITH_YOUR_RENDER_URL';
 
-    // --- Firebase init ---
-    const cfg = window._FM_FIREBASE_CONFIG;
-    if(!cfg){ alert('Fehler: firebase-config.js enthält keine Konfiguration.'); throw new Error('No firebase config'); }
-    firebase.initializeApp(cfg);
-    const db = firebase.database();
+    // helpers
+    const qa = sel => Array.from(document.querySelectorAll(sel));
+    const q = sel => document.querySelector(sel);
 
-    // --- Session handling ---
+    // create socket
+    const socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+
     let sessionCode = localStorage.getItem('fm_session') || null;
     const sessionInfo = q('#sessionInfo');
+    let current = null;
 
     function makeCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
 
@@ -59,51 +57,52 @@
       sessionCode = makeCode();
       localStorage.setItem('fm_session', sessionCode);
       sessionInfo.textContent = 'Session: ' + sessionCode;
-      // create session node with initial values
-      db.ref('sessions/' + sessionCode).set({ lastField: 0, ts: Date.now() });
-      startListening();
+      // join session room
+      socket.emit('join-session', sessionCode);
     }
 
+    // restore or ask
     function restoreOrAsk(){
       if(sessionCode){
         sessionInfo.textContent = 'Session: ' + sessionCode + ' (restored)';
-        startListening();
+        socket.emit('join-session', sessionCode);
         return;
       }
-      // No session -> create one
       createSession();
-      alert('Session erstellt. Öffne die Steuerung auf deinem Handy und gib den Code ein:\n\n' + sessionCode);
+      alert('Session erstellt. Öffne die Steuerung auf deinem Handy und gib den Code ein:\\n\\n' + sessionCode);
     }
 
-    // --- Listen for changes ---
-    let current = null;
-    function startListening(){
-      const ref = db.ref('sessions/' + sessionCode + '/lastField');
-      ref.on('value', snap => {
-        const v = snap.val();
-        if(v == null) return;
-        if(v === current) return; // ignore repeats (display-side safety)
-        current = v;
-        highlightCell(v);
-      });
-    }
-
-    // --- Highlighting + sound ---
     function highlightCell(num){
       qa('.cell').forEach(c => c.classList.remove('active'));
       if(!num) return;
       const el = document.querySelector('.cell[data-i="'+num+'"]');
       if(el) el.classList.add('active');
-      // play sound
+      // sound
       const beep = document.getElementById('beep');
       try{ beep.currentTime = 0; beep.play(); } catch(e){}
     }
 
-    // On load:
-    restoreOrAsk();
+    // socket handlers
+    socket.on('connect', () => {
+      console.log('connected to server', socket.id);
+      if(sessionCode) socket.emit('join-session', sessionCode);
+    });
 
-    // convenience: show session if user wants to recreate
-    window.showSession = () => alert('Session: ' + sessionCode);
+    socket.on('session-state', (data) => {
+      if(!data) return;
+      const v = data.lastField || data.lastField===0 ? data.lastField : (data.lastField || 0);
+      // initial state: highlight if present
+      if(v) { current = v; highlightCell(v); }
+    });
+
+    socket.on('field-changed', ({ field }) => {
+      if(field === current) return;
+      current = field;
+      highlightCell(field);
+    });
+
+    // init
+    restoreOrAsk();
   </script>
 </body>
 </html>
