@@ -35,7 +35,7 @@
         <button onclick="manualPick(7)">7</button>
         <button onclick="manualPick(8)">8</button>
         <button onclick="manualPick(9)">9</button>
-        <button onclick="manualPick(0)">Null</button> <!-- NEU: Null Knopf -->
+        <button onclick="manualPick(0)">Null</button> <!-- Null-Knopf -->
       </div>
 
       <div class="small">Letztes Feld: <span id="last">—</span></div>
@@ -82,7 +82,6 @@
     let lastField = 0;
     let sequenceTimer = null;
 
-    // Kompetitiver Modus
     let competitiveMode = false;
     let competitiveCount = 0;
     let competitiveStart = null;
@@ -100,56 +99,48 @@
       socket.emit('join-session', session);
     }
 
-    socket.on('connect', () => { console.log('connected to server', socket.id); });
+    socket.on('connect', ()=>{ if(session) socket.emit('join-session', session); });
 
-    socket.on('session-state', (data) => {
-      if(!data) return;
-      const v = data.lastField || 0;
-      const c = data.color || 'red';
-      lastField = v;
-      highlightCell(v, c);
-    });
-
-    socket.on('field-changed', ({ field, color }) => {
+    socket.on('field-changed', ({field,color})=>{
       lastField = field;
-      highlightCell(field, color || 'red');
+      highlightCell(field,color||'red');
     });
 
-    function highlightCell(num, color='red'){
+    function highlightCell(num,color='red'){
       const btns = document.querySelectorAll('.grid-btns button');
-      btns.forEach(b => b.style.background = '#333');
-      if(num === 0) return; // Null setzt alles zurück
+      btns.forEach(b=>b.style.background='#333');
+      if(num===0) return; // Null-Knopf
       const btn = document.querySelector(`.grid-btns button:nth-child(${num})`);
-      if(btn) btn.style.background = color;
+      if(btn) btn.style.background=color;
     }
 
     function manualPick(n){
       if(!session) return alert('Bitte zuerst verbinden!');
-      const color = 'red';
-      socket.emit('pick-field', { sessionCode: session, field: n, color });
+      let color = 'red';
+      socket.emit('pick-field',{sessionCode:session,field:n,color});
 
       if(competitiveMode){
         competitiveCount++;
-        if(competitiveCount === 1) competitiveStart = Date.now();
-        if(competitiveCount >= COMPETITIVE_LENGTH){
-          competitiveMode = false;
-          const duration = (Date.now()-competitiveStart)/1000;
-          document.getElementById('competitiveStatus').textContent = `Fertig! Zeit: ${duration.toFixed(2)}s`;
-          saveCompetitiveResult(document.getElementById('playerName').value.trim(), duration);
+        if(competitiveCount===1) competitiveStart=Date.now();
+        if(competitiveCount>=COMPETITIVE_LENGTH){
+          competitiveMode=false;
+          const duration=(Date.now()-competitiveStart)/1000;
+          document.getElementById('competitiveStatus').textContent=`Fertig! Zeit: ${duration.toFixed(2)}s`;
+          saveCompetitiveResult(document.getElementById('playerName').value.trim(),duration);
         } else {
-          document.getElementById('competitiveStatus').textContent = `Felder: ${competitiveCount}/${COMPETITIVE_LENGTH}`;
+          document.getElementById('competitiveStatus').textContent=`Felder: ${competitiveCount}/${COMPETITIVE_LENGTH}`;
         }
       }
     }
 
     function startCompetitive(){
-      const player = document.getElementById('playerName').value.trim();
+      const player=document.getElementById('playerName').value.trim();
       if(!player) return alert('Bitte Namen eingeben!');
       if(!session) return alert('Bitte zuerst verbinden!');
-      competitiveMode = true;
-      competitiveCount = 0;
-      competitiveStart = null;
-      document.getElementById('competitiveStatus').textContent = `Klicke ${COMPETITIVE_LENGTH} Felder!`;
+      competitiveMode=true;
+      competitiveCount=0;
+      competitiveStart=null;
+      document.getElementById('competitiveStatus').textContent=`Klicke ${COMPETITIVE_LENGTH} Felder!`;
     }
 
     function saveCompetitiveResult(player,duration){
@@ -158,25 +149,22 @@
 
     function startSequence(){
       if(!session) return alert('Bitte zuerst verbinden!');
-      const length = parseInt(document.getElementById('seqLength').value)||20;
-      const speed = parseFloat(document.getElementById('seqSpeed').value)||0.5;
-      const mode = document.getElementById('seqMode').value;
+      const length=parseInt(document.getElementById('seqLength').value)||20;
+      const speed=parseFloat(document.getElementById('seqSpeed').value)||0.5;
+      const mode=document.getElementById('seqMode').value;
       let count=0;
 
       if(sequenceTimer) clearInterval(sequenceTimer);
-      // in startSequence()
-      if(mode==='schwer'){
-        color = (Math.random()<0.3)?'green':'red'; // nur 30% grün, 70% rot
-      }
 
-
-      sequenceTimer = setInterval(()=>{
+      sequenceTimer=setInterval(()=>{
         count++;
         let next;
         do{ next=Math.floor(Math.random()*9)+1; } while(next===lastField);
 
         let color='red';
-        if(mode==='schwer') color = (Math.random()<0.5)?'red':'green';
+        if(mode==='schwer'){
+          color=(Math.random()<0.3)?'green':'red'; // 30% grün
+        }
 
         highlightCell(next,color);
         socket.emit('pick-field',{sessionCode:session,field:next,color});
@@ -192,13 +180,14 @@
     }
 
     function showTop3(){
-      db.ref('competitiv-scores').orderByChild('duration').limitToFirst(3).once('value', snapshot=>{
-        const div = document.getElementById('top3');
+      db.ref('competitiv-scores').orderByChild('duration').limitToFirst(3).once('value',snapshot=>{
+        const div=document.getElementById('top3');
         div.innerHTML='';
-        const items = [];
+        const items=[];
         snapshot.forEach(s=>items.push(s.val()));
         items.sort((a,b)=>a.duration-b.duration);
-        items.forEach((item,i)=>div.innerHTML+=`${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`);
+        items.forEach((item,i)=>
+div.innerHTML+=`${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`);
         for(let i=items.length;i<3;i++) div.innerHTML+=`${i+1}. ---<br>`;
       });
     }
