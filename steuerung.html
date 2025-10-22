@@ -42,6 +42,19 @@
 
     <div id="status" class="small" style="margin-top:8px"></div>
   </div>
+  <hr style="margin:12px 0">
+
+<h3>Sequenzmodus</h3>
+Sequenz Länge: <input id="seqLength" type="number" value="20" min="1" /><br/>
+Sequenz Geschwindigkeit (s): <input id="seqSpeed" type="number" value="0.5" min="0.1" step="0.1" /><br/>
+<button onclick="startSequence()">Sequenz starten</button>
+
+<hr>
+
+<h3>Kompetitiver Modus</h3>
+Spielername: <input id="playerName" type="text" placeholder="Name" /><br/>
+<button onclick="startCompetitive()">Start Competitiv</button>
+
 
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
@@ -81,6 +94,30 @@
       if(!session) return alert('Verbinde dich zuerst mit einer Session.');
       socket.emit('pick-field', { sessionCode: session, field: n });
     }
+
+    let sequenceTimer = null;
+
+function startSequence() {
+  if(!session) return alert('Bitte zuerst verbinden!');
+  const length = parseInt(document.getElementById('seqLength').value) || 20;
+  const speed = parseFloat(document.getElementById('seqSpeed').value) || 0.5;
+  let count = 0;
+
+  if(sequenceTimer) clearInterval(sequenceTimer);
+
+  sequenceTimer = setInterval(() => {
+    count++;
+    let next;
+    do { next = Math.floor(Math.random() * 9) + 1; } while(next === lastField);
+    manualPick(next);
+
+    if(count >= length){
+      clearInterval(sequenceTimer);
+      sequenceTimer = null;
+    }
+  }, speed*1000);
+}
+
   </script>
 </body>
 </html>
