@@ -11,6 +11,7 @@
     .grid {height:100vh;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;padding:16px;box-sizing:border-box}
     .cell {display:flex;align-items:center;justify-content:center;border-radius:12px;background:#222;font-size:48px;transition:transform .12s,background .12s}
     .cell.active{background:#ff3b30;transform:scale(1.06)}
+    .cell.green{ background: #00ff00 !important; transform: scale(1.06); }
   </style>
 </head>
 <body>
@@ -72,15 +73,21 @@
       alert('Session erstellt. Öffne die Steuerung auf deinem Handy und gib den Code ein:\\n\\n' + sessionCode);
     }
 
-    function highlightCell(num){
-      qa('.cell').forEach(c => c.classList.remove('active'));
-      if(!num) return;
-      const el = document.querySelector('.cell[data-i="'+num+'"]');
-      if(el) el.classList.add('active');
-      // sound
-      const beep = document.getElementById('beep');
-      try{ beep.currentTime = 0; beep.play(); } catch(e){}
-    }
+    socket.on('field-changed', ({ field, color })=>{
+  lastField = field;
+  highlightCell(field,color);
+});
+
+function highlightCell(num,color='red'){
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach(c=>c.classList.remove('active','green'));
+  if(num===0) return; // Null -> nichts leuchtet
+  const el=document.querySelector(`.cell[data-i="${num}"]`);
+  if(el){
+    if(color==='green'){ el.classList.add('green'); el.classList.remove('active'); }
+    else{ el.classList.add('active'); el.classList.remove('green'); }
+  }
+}
 
     // socket handlers
     socket.on('connect', () => {
