@@ -34,20 +34,21 @@ io.on('connection', (socket) => {
     socket.emit('session-state', { lastField: cur || 0 });
   });
 
-  // controller sends explicit pick (C mode)
-  socket.on('pick-field', ({ sessionCode, field }) => {
+
+  socket.on('pick-field', ({ sessionCode, field, color }) => {
     if(!sessionCode) return;
-    // validate
     field = Number(field) || 0;
     if(field < 0 || field > 9) return;
-    // update session state
+  
     sessions[sessionCode] = sessions[sessionCode] || { lastField: 0 };
     sessions[sessionCode].lastField = field;
+    sessions[sessionCode].color = color || 'red'; // Farbe speichern
     sessions[sessionCode].ts = Date.now();
-    // broadcast to room
-    io.to(sessionCode).emit('field-changed', { field });
-    console.log(`session ${sessionCode} field set ${field}`);
+  
+    // Broadcast inkl. Farbe
+    io.to(sessionCode).emit('field-changed', { field, color: sessions[sessionCode].color });
   });
+
 
   // controller requests "next" random (not used for C mode but kept)
   socket.on('next-field-random', (sessionCode) => {
