@@ -164,6 +164,11 @@
       let count=0;
 
       if(sequenceTimer) clearInterval(sequenceTimer);
+      // in startSequence()
+      if(mode==='schwer'){
+        color = (Math.random()<0.3)?'green':'red'; // nur 30% grün, 70% rot
+      }
+
 
       sequenceTimer = setInterval(()=>{
         count++;
