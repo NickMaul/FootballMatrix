@@ -11,7 +11,7 @@
     .grid {height:100vh;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;padding:16px;box-sizing:border-box}
     .cell {display:flex;align-items:center;justify-content:center;border-radius:12px;background:#222;font-size:48px;transition:transform .12s,background .12s}
     .cell.active{background:#ff3b30;transform:scale(1.06)}
-    .cell.green{ background: #00ff00 !important; transform: scale(1.06); }
+    .cell.green{background:#00ff00 !important; transform:scale(1.06);}
   </style>
 </head>
 <body>
@@ -33,24 +33,13 @@
 
   <audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA"></audio>
 
-  <!-- socket.io-client CDN -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-
   <script>
-    // ====== CONFIG ======
-    // Ersetze dies später mit deiner Render-URL, z.B. 'https://footballmatrix-server.onrender.com'
     const SERVER_URL = 'https://footballmatrix.onrender.com';
-
-    // helpers
-    const qa = sel => Array.from(document.querySelectorAll(sel));
-    const q = sel => document.querySelector(sel);
-
-    // create socket
-    const socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    const socket = io(SERVER_URL, { transports: ['websocket','polling'] });
 
     let sessionCode = localStorage.getItem('fm_session') || null;
-    const sessionInfo = q('#sessionInfo');
-    let current = null;
+    const sessionInfo = document.getElementById('sessionInfo');
 
     function makeCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
 
@@ -58,11 +47,9 @@
       sessionCode = makeCode();
       localStorage.setItem('fm_session', sessionCode);
       sessionInfo.textContent = 'Session: ' + sessionCode;
-      // join session room
       socket.emit('join-session', sessionCode);
     }
 
-    // restore or ask
     function restoreOrAsk(){
       if(sessionCode){
         sessionInfo.textContent = 'Session: ' + sessionCode + ' (restored)';
@@ -70,45 +57,38 @@
         return;
       }
       createSession();
-      alert('Session erstellt. Öffne die Steuerung auf deinem Handy und gib den Code ein:\\n\\n' + sessionCode);
+      alert('Session erstellt. Öffne die Steuerung auf deinem Gerät und gib den Code ein:\n\n' + sessionCode);
     }
 
-    socket.on('field-changed', ({ field, color })=>{
-  lastField = field;
-  highlightCell(field,color);
-});
+    function highlightCell(num,color='red'){
+      const cells = document.querySelectorAll('.cell');
+      cells.forEach(c=>c.classList.remove('active','green'));
+      if(num===0) return; // Null = kein Feld
+      const el=document.querySelector(`.cell[data-i="${num}"]`);
+      if(el){
+        if(color==='green'){ el.classList.add('green'); el.classList.remove('active'); }
+        else{ el.classList.add('active'); el.classList.remove('green'); }
+      }
+      // Sound nur für rot
+      if(color==='red'){
+        const beep = document.getElementById('beep');
+        try{ beep.currentTime=0; beep.play(); } catch(e){}
+      }
+    }
 
-function highlightCell(num,color='red'){
-  const cells = document.querySelectorAll('.cell');
-  cells.forEach(c=>c.classList.remove('active','green'));
-  if(num===0) return; // Null -> nichts leuchtet
-  const el=document.querySelector(`.cell[data-i="${num}"]`);
-  if(el){
-    if(color==='green'){ el.classList.add('green'); el.classList.remove('active'); }
-    else{ el.classList.add('active'); el.classList.remove('green'); }
-  }
-}
+    socket.on('connect',()=>{ console.log('connected to server', socket.id); if(sessionCode) socket.emit('join-session', sessionCode); });
 
-    // socket handlers
-    socket.on('connect', () => {
-      console.log('connected to server', socket.id);
-      if(sessionCode) socket.emit('join-session', sessionCode);
-    });
-
-    socket.on('session-state', (data) => {
+    socket.on('session-state',(data)=>{
       if(!data) return;
-      const v = data.lastField || data.lastField===0 ? data.lastField : (data.lastField || 0);
-      // initial state: highlight if present
-      if(v) { current = v; highlightCell(v); }
+      const v = data.lastField || 0;
+      const c = data.color || 'red';
+      highlightCell(v,c);
     });
 
-    socket.on('field-changed', ({ field }) => {
-      if(field === current) return;
-      current = field;
-      highlightCell(field);
+    socket.on('field-changed',({field,color})=>{
+      highlightCell(field,color||'red');
     });
 
-    // init
     restoreOrAsk();
   </script>
 </body>
