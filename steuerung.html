@@ -190,8 +190,7 @@
         const items=[];
         snapshot.forEach(s=>items.push(s.val()));
         items.sort((a,b)=>a.duration-b.duration);
-        items.forEach((item,i)=>
-div.innerHTML+=`${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`);
+        items.forEach((item,i)=>div.innerHTML+=`${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`);
         for(let i=items.length;i<3;i++) div.innerHTML+=`${i+1}. ---<br>`;
       });
     }
