@@ -146,8 +146,9 @@
     }
 
     function saveCompetitiveResult(player,duration){
-      db.ref('competitiv-scores').push({player,duration,ts:Date.now()});
+      db.ref('competitiv-scores').push({player, duration: Number(duration), ts: Date.now()});
     }
+
 
     function startSequence(){
   if(!session) return alert('Bitte zuerst verbinden!');
@@ -186,14 +187,16 @@
     function showTop3Live() {
   const div = document.getElementById('top3');
 
-  // Echtzeit Listener auf die Scores
   db.ref('competitiv-scores').orderByChild('duration').limitToFirst(3).on('value', snapshot => {
     const items = [];
-    
+
     snapshot.forEach(s => {
       const val = s.val();
       if(val && val.player != null && val.duration != null) {
-        items.push(val);
+        items.push({
+          player: val.player,
+          duration: Number(val.duration) // wichtig!
+        });
       }
     });
 
@@ -211,6 +214,7 @@
     }
   });
 }
+
 
   </script>
 </body>
