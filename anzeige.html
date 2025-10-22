@@ -60,20 +60,25 @@
     }
 
     function highlightCell(num, color='red'){
-      const cells = document.querySelectorAll('.cell');
-      cells.forEach(c => c.classList.remove('active','green'));
-      if(num===0) return; // Null = nichts leuchtet
-      const el = document.querySelector(`.cell[data-i="${num}"]`);
-      if(el){
-        if(color==='green'){ el.classList.add('green'); el.classList.remove('active'); }
-        else{ el.classList.add('active'); el.classList.remove('green'); }
-      }
-      // Sound nur für rot
-      if(color==='red'){
-        const beep = document.getElementById('beep');
-        try{ beep.currentTime = 0; beep.play(); } catch(e){}
-      }
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach(c => c.classList.remove('active','green'));
+  if(num===0) return; // Null = nichts leuchtet
+  const el = document.querySelector(`.cell[data-i="${num}"]`);
+  if(el){
+    if(color==='green'){ 
+      el.classList.add('green'); 
+      el.classList.remove('active'); 
     }
+    else{ 
+      el.classList.add('active'); 
+      el.classList.remove('green'); 
+    }
+  }
+  if(color==='red'){
+    const beep = document.getElementById('beep');
+    try{ beep.currentTime = 0; beep.play(); } catch(e){}
+  }
+}
 
     socket.on('connect', ()=>{ 
       console.log('connected', socket.id);
