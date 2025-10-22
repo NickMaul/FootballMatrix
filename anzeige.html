@@ -10,7 +10,7 @@
     .session {font-size:18px;padding:8px 12px;border-radius:6px;background:rgba(255,255,255,0.06)}
     .grid {height:100vh;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;padding:16px;box-sizing:border-box}
     .cell {display:flex;align-items:center;justify-content:center;border-radius:12px;background:#222;font-size:48px;transition:transform .12s,background .12s}
-    .cell.active{background:#ff3b30;transform:scale(1.06)}
+    .cell.active{background:#ff3b30;transform:scale(1.06);}
     .cell.green{background:#00ff00 !important; transform:scale(1.06);}
   </style>
 </head>
@@ -42,7 +42,6 @@
     const sessionInfo = document.getElementById('sessionInfo');
 
     function makeCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
-
     function createSession(){
       sessionCode = makeCode();
       localStorage.setItem('fm_session', sessionCode);
@@ -60,11 +59,11 @@
       alert('Session erstellt. Öffne die Steuerung auf deinem Gerät und gib den Code ein:\n\n' + sessionCode);
     }
 
-    function highlightCell(num,color='red'){
+    function highlightCell(num, color='red'){
       const cells = document.querySelectorAll('.cell');
-      cells.forEach(c=>c.classList.remove('active','green'));
-      if(num===0) return; // Null = kein Feld
-      const el=document.querySelector(`.cell[data-i="${num}"]`);
+      cells.forEach(c => c.classList.remove('active','green'));
+      if(num===0) return; // Null = nichts leuchtet
+      const el = document.querySelector(`.cell[data-i="${num}"]`);
       if(el){
         if(color==='green'){ el.classList.add('green'); el.classList.remove('active'); }
         else{ el.classList.add('active'); el.classList.remove('green'); }
@@ -72,20 +71,23 @@
       // Sound nur für rot
       if(color==='red'){
         const beep = document.getElementById('beep');
-        try{ beep.currentTime=0; beep.play(); } catch(e){}
+        try{ beep.currentTime = 0; beep.play(); } catch(e){}
       }
     }
 
-    socket.on('connect',()=>{ console.log('connected to server', socket.id); if(sessionCode) socket.emit('join-session', sessionCode); });
-
-    socket.on('session-state',(data)=>{
-      if(!data) return;
-      const v = data.lastField || 0;
-      const c = data.color || 'red';
-      highlightCell(v,c);
+    socket.on('connect', ()=>{ 
+      console.log('connected', socket.id);
+      if(sessionCode) socket.emit('join-session', sessionCode); 
     });
 
-    socket.on('field-changed',({field,color})=>{
+    socket.on('session-state', (data)=>{
+      if(!data) return;
+      const field = data.lastField || 0;
+      const color = data.color || 'red';
+      highlightCell(field,color);
+    });
+
+    socket.on('field-changed', ({field,color})=>{
       highlightCell(field,color||'red');
     });
 
