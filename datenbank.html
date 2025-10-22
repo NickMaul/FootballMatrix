@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Highscores</title>
+</head>
+<body>
+  <h2>Highscores Competitiv</h2>
+  <ul id="scores"></ul>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const app = firebase.initializeApp(window._FM_FIREBASE_CONFIG);
+    const db = firebase.database();
+
+    db.ref('competitiv-scores').orderByChild('score').limitToLast(10).on('value', snapshot => {
+      const ul = document.getElementById('scores');
+      ul.innerHTML = '';
+      const items = [];
+      snapshot.forEach(s => items.push(s.val()));
+      items.reverse().forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = `${item.player}: ${item.score} Felder, Speed ${item.speed}s`;
+        ul.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>
