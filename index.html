@@ -73,9 +73,17 @@
   <button onclick="nextField()">Nächstes Feld</button>
 
   <script>
+    let lastField = null;
+
     function nextField() {
       document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('active'));
-      const random = Math.floor(Math.random() * 9) + 1;
+
+      let random;
+      do {
+        random = Math.floor(Math.random() * 9) + 1;
+      } while (random === lastField);
+
+      lastField = random;
       document.getElementById('c' + random).classList.add('active');
     }
   </script>
