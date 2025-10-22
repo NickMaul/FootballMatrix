@@ -13,6 +13,7 @@
     .small{font-size:13px;opacity:.8;margin-top:8px}
     .grid-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
     .grid-btns button{padding:18px;font-size:20px}
+    hr{margin:16px 0; border-color:#444;}
   </style>
 </head>
 <body>
@@ -40,30 +41,40 @@
       <div class="small">Letztes Feld: <span id="last">—</span></div>
     </div>
 
+    <hr>
+
+    <h3>Kompetitiver Modus</h3>
+    Spielername: <input id="playerName" type="text" placeholder="Name" /><br/>
+    <button onclick="startCompetitive()">Start Competitiv</button>
+    <div id="competitiveStatus" class="small"></div>
+
     <div id="status" class="small" style="margin-top:8px"></div>
   </div>
-  <hr style="margin:12px 0">
 
-<h3>Sequenzmodus</h3>
-Sequenz Länge: <input id="seqLength" type="number" value="20" min="1" /><br/>
-Sequenz Geschwindigkeit (s): <input id="seqSpeed" type="number" value="0.5" min="0.1" step="0.1" /><br/>
-<button onclick="startSequence()">Sequenz starten</button>
-
-<hr>
-
-<h3>Kompetitiver Modus</h3>
-Spielername: <input id="playerName" type="text" placeholder="Name" /><br/>
-<button onclick="startCompetitive()">Start Competitiv</button>
-
-
+  <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
 
   <script>
     const SERVER_URL = 'https://footballmatrix.onrender.com';
 
-    const socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+    const socket = io(SERVER_URL, { transports: ['websocket','polling'] });
     let session = null;
     let lastField = 0;
+
+    // Competitive Mode
+    let competitiveMode = false;
+    let competitiveCount = 0;
+    let competitiveStart = null;
+    const COMPETITIVE_LENGTH = 20;
+
+    // Firebase setup
+    const app = firebase.initializeApp(window._FM_FIREBASE_CONFIG);
+    const db = firebase.database();
 
     function join(){
       const code = document.getElementById('code').value.trim();
@@ -74,9 +85,7 @@ Spielername: <input id="playerName" type="text" placeholder="Name" /><br/>
       socket.emit('join-session', session);
     }
 
-    socket.on('connect', () => {
-      console.log('connected to server', socket.id);
-    });
+    socket.on('connect', () => { console.log('connected to server', socket.id); });
 
     socket.on('session-state', (data) => {
       if(!data) return;
@@ -93,75 +102,42 @@ Spielername: <input id="playerName" type="text" placeholder="Name" /><br/>
     function manualPick(n){
       if(!session) return alert('Verbinde dich zuerst mit einer Session.');
       socket.emit('pick-field', { sessionCode: session, field: n });
+
+      if(competitiveMode){
+        competitiveCount++;
+        if(competitiveCount === 1) competitiveStart = Date.now();
+
+        if(competitiveCount >= COMPETITIVE_LENGTH){
+          competitiveMode = false;
+          const duration = (Date.now() - competitiveStart)/1000;
+          document.getElementById('competitiveStatus').textContent = `Fertig! Zeit: ${duration.toFixed(2)}s`;
+          saveCompetitiveResult(document.getElementById('playerName').value.trim(), duration);
+        } else {
+          document.getElementById('competitiveStatus').textContent = `Felder: ${competitiveCount}/${COMPETITIVE_LENGTH}`;
+        }
+      }
     }
 
-    let sequenceTimer = null;
-
-function startSequence() {
-  if(!session) return alert('Bitte zuerst verbinden!');
-  const length = parseInt(document.getElementById('seqLength').value) || 20;
-  const speed = parseFloat(document.getElementById('seqSpeed').value) || 0.5;
-  let count = 0;
-
-  if(sequenceTimer) clearInterval(sequenceTimer);
-
-  sequenceTimer = setInterval(() => {
-    count++;
-    let next;
-    do { next = Math.floor(Math.random() * 9) + 1; } while(next === lastField);
-    manualPick(next);
-
-    if(count >= length){
-      clearInterval(sequenceTimer);
-      sequenceTimer = null;
+    function startCompetitive() {
+      const player = document.getElementById('playerName').value.trim();
+      if(!player) return alert('Bitte Namen eingeben!');
+      if(!session) return alert('Bitte zuerst verbinden!');
+      competitiveMode = true;
+      competitiveCount = 0;
+      competitiveStart = null;
+      document.getElementById('competitiveStatus').textContent = `Klicke ${COMPETITIVE_LENGTH} Felder!`;
     }
-  }, speed*1000);
-}
-function startCompetitive() {
-  const player = document.getElementById('playerName').value.trim();
-  if(!player) return alert('Bitte Namen eingeben!');
-  if(!session) return alert('Bitte zuerst verbinden!');
 
-  const length = 20;
-  const speed = 0.5;
-  let count = 0;
-
-  if(sequenceTimer) clearInterval(sequenceTimer);
-
-  sequenceTimer = setInterval(() => {
-    count++;
-    let next;
-    do { next = Math.floor(Math.random() * 9) + 1; } while(next === lastField);
-    manualPick(next);
-
-    if(count >= length){
-      clearInterval(sequenceTimer);
-      sequenceTimer = null;
-      saveCompetitiveResult(player, length, speed); // Ergebnis speichern
+    function saveCompetitiveResult(player, duration){
+      const ts = Date.now();
+      db.ref('competitiv-scores').push({
+        player,
+        duration,
+        ts
+      }).then(() => {
+        console.log(`Ergebnis gespeichert für ${player}: ${duration}s`);
+      }).catch(err => console.error('Fehler beim Speichern:', err));
     }
-  }, speed*1000);
-}
-
   </script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script>
-  const app = firebase.initializeApp(window._FM_FIREBASE_CONFIG);
-  const db = firebase.database();
-
-  function saveCompetitiveResult(player, length, speed){
-    const ts = Date.now();
-    db.ref('competitiv-scores').push({
-      player,
-      score: length,
-      speed,
-      ts
-    }).then(() => {
-      alert(`Ergebnis gespeichert für ${player}!`);
-    }).catch(err => alert('Fehler beim Speichern: '+err));
-  }
-</script>
-
 </body>
 </html>
