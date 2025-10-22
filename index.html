@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Football Matrix - Start</title>
+  <style>
+    body{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:Arial,Helvetica,sans-serif;background:#0b1220;color:#fff}
+    .card{background:#111;padding:30px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.6);text-align:center}
+    button{padding:14px 24px;margin:10px;font-size:18px;border-radius:10px;border:none;cursor:pointer}
+    .display{background:#1976d2;color:#fff}
+    .control{background:#43a047;color:#fff}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Football Matrix</h1>
+    <p>Wähle deine Rolle:</p>
+    <div>
+      <button class="display" onclick="startDisplay()">Anzeige (iPad)</button>
+      <button class="control" onclick="startControl()">Steuerung (Handy)</button>
+    </div>
+    <p style="font-size:13px;opacity:.8">Hosted via GitHub Pages • Sync via Firebase Realtime DB</p>
+  </div>
+
+  <script>
+    function startDisplay(){ location.href = 'display.html'; }
+    function startControl(){ location.href = 'controller.html'; }
+  </script>
+</body>
+</html>
