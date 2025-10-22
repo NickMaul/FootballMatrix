@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Football Matrix - Anzeige</title>
+  <style>
+    html,body{height:100%;margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
+    .top {position:fixed;left:8px;top:8px;z-index:20}
+    .session {font-size:18px;padding:8px 12px;border-radius:6px;background:rgba(255,255,255,0.06)}
+    .grid {height:100vh;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;padding:16px;box-sizing:border-box}
+    .cell {display:flex;align-items:center;justify-content:center;border-radius:12px;background:#222;font-size:48px;transition:transform .12s,background .12s}
+    .cell.active{background:#ff3b30;transform:scale(1.06)}
+    .center-label{font-size:18px;opacity:.8}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="session" id="sessionInfo">Session: —</div>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="cell" data-i="1">1</div>
+    <div class="cell" data-i="2">2</div>
+    <div class="cell" data-i="3">3</div>
+    <div class="cell" data-i="4">4</div>
+    <div class="cell" data-i="5">5</div>
+    <div class="cell" data-i="6">6</div>
+    <div class="cell" data-i="7">7</div>
+    <div class="cell" data-i="8">8</div>
+    <div class="cell" data-i="9">9</div>
+  </div>
+
+  <audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA"></audio>
+
+  <!-- Firebase + app logic -->
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <script>
+    // --- Basic helpers ---
+    function q(sel){return document.querySelector(sel)}
+    function qa(sel){return Array.from(document.querySelectorAll(sel))}
+
+    // --- Firebase init ---
+    const cfg = window._FM_FIREBASE_CONFIG;
+    if(!cfg){ alert('Fehler: firebase-config.js enthält keine Konfiguration.'); throw new Error('No firebase config'); }
+    firebase.initializeApp(cfg);
+    const db = firebase.database();
+
+    // --- Session handling ---
+    let sessionCode = localStorage.getItem('fm_session') || null;
+    const sessionInfo = q('#sessionInfo');
+
+    function makeCode(){ return Math.floor(100000 + Math.random()*900000).toString(); }
+
+    function createSession(){
+      sessionCode = makeCode();
+      localStorage.setItem('fm_session', sessionCode);
+      sessionInfo.textContent = 'Session: ' + sessionCode;
+      // create session node with initial values
+      db.ref('sessions/' + sessionCode).set({ lastField: 0, ts: Date.now() });
+      startListening();
+    }
+
+    function restoreOrAsk(){
+      if(sessionCode){
+        sessionInfo.textContent = 'Session: ' + sessionCode + ' (restored)';
+        startListening();
+        return;
+      }
+      // No session -> create one
+      createSession();
+      alert('Session erstellt. Öffne die Steuerung auf deinem Handy und gib den Code ein:\n\n' + sessionCode);
+    }
+
+    // --- Listen for changes ---
+    let current = null;
+    function startListening(){
+      const ref = db.ref('sessions/' + sessionCode + '/lastField');
+      ref.on('value', snap => {
+        const v = snap.val();
+        if(v == null) return;
+        if(v === current) return; // ignore repeats (display-side safety)
+        current = v;
+        highlightCell(v);
+      });
+    }
+
+    // --- Highlighting + sound ---
+    function highlightCell(num){
+      qa('.cell').forEach(c => c.classList.remove('active'));
+      if(!num) return;
+      const el = document.querySelector('.cell[data-i="'+num+'"]');
+      if(el) el.classList.add('active');
+      // play sound
+      const beep = document.getElementById('beep');
+      try{ beep.currentTime = 0; beep.play(); } catch(e){}
+    }
+
+    // On load:
+    restoreOrAsk();
+
+    // convenience: show session if user wants to recreate
+    window.showSession = () => alert('Session: ' + sessionCode);
+  </script>
+</body>
+</html>
