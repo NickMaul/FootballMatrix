@@ -143,5 +143,25 @@ function startCompetitive() {
 }
 
   </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  const app = firebase.initializeApp(window._FM_FIREBASE_CONFIG);
+  const db = firebase.database();
+
+  function saveCompetitiveResult(player, length, speed){
+    const ts = Date.now();
+    db.ref('competitiv-scores').push({
+      player,
+      score: length,
+      speed,
+      ts
+    }).then(() => {
+      alert(`Ergebnis gespeichert für ${player}!`);
+    }).catch(err => alert('Fehler beim Speichern: '+err));
+  }
+</script>
+
 </body>
 </html>
