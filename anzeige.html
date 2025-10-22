@@ -36,7 +36,7 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     const SERVER_URL = 'https://footballmatrix.onrender.com';
-    const socket = io(SERVER_URL, { transports: ['websocket','polling'] });
+    const socket = io(SERVER_URL, { transports: ['websocket'] });
 
     let sessionCode = localStorage.getItem('fm_session') || null;
     const sessionInfo = document.getElementById('sessionInfo');
