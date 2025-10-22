@@ -42,10 +42,15 @@
 
     <hr>
 
-    <!-- Automatisierte Sequenz -->
+    <!-- Automatische Sequenz -->
     <h3>Automatische Sequenz</h3>
-    Sequenz Länge: <input id="seqLength" type="number" value="20" min="1" /><br/>
-    Sequenz Geschwindigkeit (s): <input id="seqSpeed" type="number" value="0.5" min="0.1" step="0.1" /><br/>
+    Länge: <input id="seqLength" type="number" value="20" min="1" /><br/>
+    Geschwindigkeit (s): <input id="seqSpeed" type="number" value="0.5" min="0.1" step="0.1" /><br/>
+    Modus: 
+    <select id="seqMode">
+      <option value="leicht">Leicht (nur rot)</option>
+      <option value="schwer">Schwer (rot/grün)</option>
+    </select><br/>
     <button onclick="startSequence()">Start Automatische Sequenz</button>
     <div id="seqStatus" class="small"></div>
 
@@ -108,13 +113,21 @@
       if(!data) return;
       const v = data.lastField || 0;
       lastField = v;
-      document.getElementById('last').textContent = v || '—';
+      highlightCell(v);
     });
 
     socket.on('field-changed', ({ field }) => {
       lastField = field;
-      document.getElementById('last').textContent = field;
+      highlightCell(field);
     });
+
+    function highlightCell(num, color='red'){
+      const btns = document.querySelectorAll('.grid-btns button');
+      btns.forEach(b => b.style.background = '#333');
+      if(num === 0) return; // leeres Feld
+      const btn = document.querySelector(`.grid-btns button:nth-child(${num})`);
+      if(btn) btn.style.background = color;
+    }
 
     // --- Manuelles Feld auswählen ---
     function manualPick(n){
@@ -161,6 +174,7 @@
       if(!session) return alert('Bitte zuerst verbinden!');
       const length = parseInt(document.getElementById('seqLength').value) || 20;
       const speed = parseFloat(document.getElementById('seqSpeed').value) || 0.5;
+      const mode = document.getElementById('seqMode').value;
       let count = 0;
 
       if(sequenceTimer) clearInterval(sequenceTimer);
@@ -168,42 +182,43 @@
       sequenceTimer = setInterval(() => {
         count++;
         let next;
-        do { next = Math.floor(Math.random()*9)+1 } while(next === lastField);
-        manualPick(next);
+        do { next = Math.floor(Math.random()*10); } while(next === lastField); 
+        // next=0 bedeutet leeres Feld
+        if(next === 9) next = 0; 
+
+        let color = 'red';
+        if(mode === 'schwer'){
+          color = (Math.random() < 0.5) ? 'red' : 'green';
+        }
+
+        highlightCell(next, color);
+        if(next !== 0 && color==='red') manualPick(next); // nur rot zählen für Punkte
+
         document.getElementById('seqStatus').textContent = `Felder: ${count}/${length}`;
 
         if(count >= length){
           clearInterval(sequenceTimer);
           sequenceTimer = null;
           document.getElementById('seqStatus').textContent = `Sequenz abgeschlossen!`;
+          highlightCell(0); // am Ende alles zurücksetzen
         }
       }, speed*1000);
     }
 
     // --- Top 3 Zeiten anzeigen ---
     function showTop3(){
-  db.ref('competitiv-scores').orderByChild('duration').limitToFirst(3).once('value', snapshot => {
-    const div = document.getElementById('top3');
-    div.innerHTML = '';
-    const items = [];
-
-    snapshot.forEach(s => {
-      items.push(s.val());
-    });
-
-    // Sortieren nach Dauer, falls nicht automatisch korrekt
-    items.sort((a,b) => a.duration - b.duration);
-
-    items.forEach((item,i)=>{
-      div.innerHTML += `${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`;
-    });
-
-    // Falls weniger als 3 Einträge vorhanden sind, Anzeige auffüllen
-    for(let i = items.length; i<3; i++){
-      div.innerHTML += `${i+1}. ---<br>`;
+      db.ref('competitiv-scores').orderByChild('duration').limitToFirst(3).once('value', snapshot => {
+        const div = document.getElementById('top3');
+        div.innerHTML = '';
+        const items = [];
+        snapshot.forEach(s => items.push(s.val()));
+        items.sort((a,b)=>a.duration-b.duration);
+        items.forEach((item,i)=>{
+          div.innerHTML += `${i+1}. ${item.player}: ${item.duration.toFixed(2)}s<br>`;
+        });
+        for(let i = items.length;i<3;i++) div.innerHTML += `${i+1}. ---<br>`;
+      });
     }
-  });
-}
   </script>
 </body>
 </html>
