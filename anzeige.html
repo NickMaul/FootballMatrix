@@ -31,8 +31,6 @@
     <div class="cell" data-i="9">9</div>
   </div>
 
-  <audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YRAAAAAA"></audio>
-
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script>
     const SERVER_URL = 'https://footballmatrix.onrender.com';
@@ -73,10 +71,6 @@
       el.classList.add('active'); 
       el.classList.remove('green'); 
     }
-  }
-  if(color==='red'){
-    const beep = document.getElementById('beep');
-    try{ beep.currentTime = 0; beep.play(); } catch(e){}
   }
 }
 
