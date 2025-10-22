@@ -117,6 +117,30 @@ function startSequence() {
     }
   }, speed*1000);
 }
+function startCompetitive() {
+  const player = document.getElementById('playerName').value.trim();
+  if(!player) return alert('Bitte Namen eingeben!');
+  if(!session) return alert('Bitte zuerst verbinden!');
+
+  const length = 20;
+  const speed = 0.5;
+  let count = 0;
+
+  if(sequenceTimer) clearInterval(sequenceTimer);
+
+  sequenceTimer = setInterval(() => {
+    count++;
+    let next;
+    do { next = Math.floor(Math.random() * 9) + 1; } while(next === lastField);
+    manualPick(next);
+
+    if(count >= length){
+      clearInterval(sequenceTimer);
+      sequenceTimer = null;
+      saveCompetitiveResult(player, length, speed); // Ergebnis speichern
+    }
+  }, speed*1000);
+}
 
   </script>
 </body>
